@@ -1,0 +1,45 @@
+# codemagic.yaml
+workflows:
+  ios-swiftui-workflow:
+    name: iOS Build Workflow
+    max_build_duration: 60
+    instance_type: mac_mini_m2 # Instancia recomendada para velocidad
+    environment:
+      groups:
+        # Aquí debes vincular el grupo de variables de Codemagic 
+        # que contenga tus certificados y perfiles de aprovisionamiento.
+        - apple_auth 
+      vars:
+        XCODE_PROJECT: "TuProyecto.xcodeproj" # Nombre de tu archivo .xcodeproj
+        XCODE_SCHEME: "TuEsquema"             # Nombre del esquema de tu app
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: |
+          # Si usas CocoaPods, descomenta la siguiente línea:
+          # pod install
+          echo "Utilizando Swift Package Manager o sin dependencias externas."
+      - name: Set up code signing
+        script: |
+          # Esto configura automáticamente los certificados guardados en Codemagic
+          keychain initialize
+          app-store-connect fetch-signing-files "com.tu.bundle.id" --project-prop target="NombreDeTuTarget"
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build ipa for distribution
+        script: |
+          # Genera el archivo .ipa
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - tu_correo@ejemplo.com
+        notify:
+          success: true
+          failure: true
